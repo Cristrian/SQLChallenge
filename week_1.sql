@@ -143,3 +143,36 @@ JOIN
         ON m.product_id = rs.product_id
 WHERE
     rs.sales_rank = 1;
+
+
+-- Query 7 Which item was purchased just before the customer became a member?
+-- The solution is almost the same as the previous one, only changes the rank order.\
+-- And the operator that compairs the join_date with the order_date
+WITH ranked_sales AS (
+    SELECT
+        m.customer_id,
+        s.product_id,
+        s.order_date,
+        RANK() OVER (
+            PARTITION BY m.customer_id
+            ORDER BY s.order_date desc 
+        ) AS sales_rank
+    FROM
+        members m
+    JOIN
+        sales s
+            ON m.customer_id = s.customer_id
+    WHERE
+        m.join_date > s.order_date
+)
+SELECT
+    rs.customer_id,
+    rs.order_date,
+    m.product_name
+FROM
+    ranked_sales rs
+JOIN
+    menu m
+        ON m.product_id = rs.product_id
+WHERE
+    rs.sales_rank = 1;
