@@ -114,22 +114,32 @@ LEFT JOIN
     menu m 
     ON m.product_id = ts.product_id;
 
-WITH purchase_counts AS (
-  SELECT 
-    s.customer_id,
-    m.product_name,
-    COUNT(*) AS order_count,
-    RANK() OVER (
-      PARTITION BY s.customer_id
-      ORDER BY COUNT(*) DESC
-    ) AS popularity_rank
-  FROM sales s
-  JOIN menu m ON s.product_id = m.product_id
-  GROUP BY s.customer_id, m.product_name
+-- Query 6
+-- First I ranked the sales by the order date, with a partition over the customer id, and after that
+-- I took the ones with rank = 1.
+WITH ranked_sales AS (
+    SELECT
+        m.customer_id,
+        s.product_id,
+        RANK() OVER (
+            PARTITION BY m.customer_id
+            ORDER BY s.order_date
+        ) AS sales_rank
+    FROM
+        members m
+    JOIN
+        sales s
+            ON m.customer_id = s.customer_id
+    WHERE
+        m.join_date <= s.order_date
 )
-SELECT 
-  customer_id,
-  product_name,
-  order_count,
-  popularity_rank
-FROM purchase_counts;
+SELECT
+    rs.customer_id,
+    m.product_name
+FROM
+    ranked_sales rs
+JOIN
+    menu m
+        ON m.product_id = rs.product_id
+WHERE
+    rs.sales_rank = 1;
