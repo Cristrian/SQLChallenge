@@ -48,3 +48,88 @@ select s.customer_id, m.product_name from  sales s
  left join menu m on m.product_id = s.product_id 
 group by s.customer_id, m.product_name
 order by s.customer_id asc;
+
+-- QUERY 4 What is the most purchased item on the menu and how many times was it purchased by all customers?   
+WITH total_sales AS (
+    SELECT 
+        m.product_id, 
+        m.product_name, 
+        COUNT(m.product_name) AS total
+    FROM 
+        menu m
+    JOIN 
+        sales s ON s.product_id = m.product_id
+    GROUP BY 
+        m.product_id, 
+        m.product_name
+    ORDER BY 
+        total DESC
+    LIMIT 1
+)
+SELECT 
+    s.customer_id, 
+    ts.product_name, 
+    COUNT(s.customer_id) AS total_purchases
+FROM 
+    sales s
+JOIN 
+    total_sales ts ON ts.product_id = s.product_id
+GROUP BY 
+    s.customer_id, 
+    ts.product_name;
+
+   
+   
+-- QUERY 5 Which item was the most popular for each customer?
+WITH total_purchases AS (
+    SELECT 
+        s.customer_id, 
+        s.product_id, 
+        COUNT(s.product_id) AS total
+    FROM 
+        sales s
+    GROUP BY 
+        s.product_id, 
+        s.customer_id
+)
+SELECT 
+    ts.customer_id, 
+    ts.total, 
+    ts.product_id, 
+    m.product_name
+FROM 
+    total_purchases ts
+JOIN (
+    SELECT 
+        customer_id, 
+        MAX(total) AS total
+    FROM 
+        total_purchases
+    GROUP BY 
+        customer_id
+) AS max_purchases 
+    ON max_purchases.total = ts.total 
+    AND max_purchases.customer_id = ts.customer_id
+LEFT JOIN 
+    menu m 
+    ON m.product_id = ts.product_id;
+
+WITH purchase_counts AS (
+  SELECT 
+    s.customer_id,
+    m.product_name,
+    COUNT(*) AS order_count,
+    RANK() OVER (
+      PARTITION BY s.customer_id
+      ORDER BY COUNT(*) DESC
+    ) AS popularity_rank
+  FROM sales s
+  JOIN menu m ON s.product_id = m.product_id
+  GROUP BY s.customer_id, m.product_name
+)
+SELECT 
+  customer_id,
+  product_name,
+  order_count,
+  popularity_rank
+FROM purchase_counts;
