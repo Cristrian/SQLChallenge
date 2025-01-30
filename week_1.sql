@@ -176,3 +176,68 @@ JOIN
         ON m.product_id = rs.product_id
 WHERE
     rs.sales_rank = 1;
+
+
+-- Query 8   What is the total items and amount spent for each member before they became a member?
+-- Solution here is based in two joins and comparing the order date with join date
+SELECT
+    s.customer_id,
+    COUNT(s.product_id),
+    SUM(m.price) AS am_spent
+FROM
+    sales s
+JOIN
+    menu m
+        ON m.product_id = s.product_id
+JOIN
+    members mem
+        ON mem.customer_id = s.customer_id
+WHERE
+    s.order_date < mem.join_date
+GROUP BY
+    s.customer_id;
+
+-- 9.  If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+-- I used a case, for filtering if it is sushi or not. And I sum up all those results.
+SELECT
+    s.customer_id,
+    SUM(CASE 
+        WHEN m.product_name = 'sushi' THEN 20*m.price
+        ELSE 10*m.price
+    END) AS total_points
+FROM
+    sales s
+JOIN
+    menu m
+        ON s.product_id = m.product_id
+group by s.customer_id;
+
+
+-- 10.In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
+-- Same logic as the last one, just added another condition on the CASE for the join date and finally a where clause 
+-- to verify that the month is january
+
+SELECT
+    s.customer_id,
+    SUM(
+        CASE 
+            WHEN s.order_date BETWEEN mem.join_date AND (mem.join_date + 7) THEN 20 * m.price
+            WHEN m.product_name = 'sushi' THEN 20 * m.price
+            ELSE 10 * m.price
+        END
+    ) AS total_points
+FROM
+    sales s
+JOIN
+    menu m
+        ON s.product_id = m.product_id
+JOIN
+    members mem
+        ON mem.customer_id = s.customer_id
+WHERE
+    EXTRACT(MONTH FROM s.order_date) = 1
+GROUP BY
+    s.customer_id;
+
+
+
